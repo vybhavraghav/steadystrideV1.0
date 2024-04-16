@@ -8,12 +8,12 @@ int angleL= 0;
 
 int motor1Pin1 = 6;
 int motor1Pin2 = 7;
-int motor2Pin1 = 4;
-int motor2Pin2 = 5;
+int motor2Pin1 = 5;
+int motor2Pin2 = 4;
 int motorDirection = 1;
 
 
-float kp = -0.6;
+float kp = -0.2;
 
 void encoderHandlerL() {
   int MSB = digitalRead(2); //MSB = most significant bit
@@ -91,28 +91,37 @@ void loop() {
 
   Serial.println(e);
   int off = kp * e;
-
-  if (off <= 0.00) {
-    motorDirection = -1;
-  } else {
-    motorDirection = 1;
-  }
-
-  int motorSpeed =0;
-  if motor
-  if (motorDirection == 1) {
-    analogWrite(motor1Pin1, motorSpeed);
-    analogWrite(motor1Pin2, 0);
-    analogWrite(motor2Pin1, motorSpeed-off );
-    analogWrite(motor2Pin2, 0);
-  } else if (motorDirection == -1) {
-    analogWrite(motor1Pin1, 0);
-    analogWrite(motor1Pin2, motorSpeed);
-    analogWrite(motor2Pin1, 0);
-    analogWrite(motor2Pin2, motorSpeed+off);
+  for (int i = 10; i< 70; i+=10){
+  int motorspeed = i;
+  motor1(motorspeed);
+  motor2(motorspeed);
+  Serial.println(i);
+  delay(5000);
   }
   // Serial.println(off);
   // delay(1000);
 
 
+}
+
+void motor1(int speed){
+  if(speed > 0){
+    analogWrite(motor1Pin1,speed);
+    analogWrite(motor1Pin2, 0);
+  }
+  else{
+    analogWrite(motor1Pin2,speed);
+    analogWrite(motor1Pin1, 0);
+  }
+}
+
+void motor2(int speed){
+  if(speed > 0){
+    analogWrite(motor2Pin1,speed);
+    analogWrite(motor2Pin2, 0);
+  }
+  else{
+    analogWrite(motor2Pin2,speed);
+    analogWrite(motor2Pin1, 0);
+  }
 }

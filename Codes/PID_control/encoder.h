@@ -22,7 +22,7 @@ void encoderHandlerL() {
 
   lastEncoded = encoded; //store this value for next time 
   angleL = encoderValueL*360/810; 
-  Serial.print("L:");Serial.println(angleL);
+  // Serial.print("L:");Serial.println(angleL);
 
 
 }
@@ -43,7 +43,7 @@ void encoderHandlerR() {
 
   lastEncoded = encoded; //store this value for next time 
   angleR = encoderValueR*360/810; 
-  Serial.print("R:");Serial.println(angleR);
+  // Serial.print("R:");Serial.println(angleR);
 
 
 

@@ -6,18 +6,23 @@
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
 #include "encoder.h"
+#include <Servo.h>
+
 
 MPU6050 mpu(Wire);
+Servo myservo1;
+Servo myservo2;
+
 
 int motor1Pin1 = 6;
 int motor1Pin2 = 7;
-int motor2Pin1 = 4;
-int motor2Pin2 = 5;
+int motor2Pin1 = 5;
+int motor2Pin2 = 4;
 int motorDirection = 1;
 double setpoint = 0;
-double Kp = 20;//10.532;
-double Ki = 0;//18.338;
-double Kd = 0;//1.077;
+double Kp = 35;//10.532;
+double Ki = 0.2;//18.338;
+double Kd = -0.3;//1.00.577;
 
 double error, lastError = 0;
 double P, I, D;
@@ -32,27 +37,48 @@ int gyroYOffset = 0;
 int gyroZOffset = 0;
 
 // Tolerance range for the error
-double errorTolerance = 1.0;
+double errorTolerance = 0.2;
 
 //bluetooth module code
 #define BT_
-SoftwareSerial bluetooth (10,9);
+// SoftwareSerial bluetooth (10,9);
 
 void setup() {
-  Serial.begin(115200);
-  bluetooth.begin(9600);
-  while (!Serial)
-    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+  myservo1.attach(9);
+  myservo1.write(102);
+  delay(100);
+  myservo1.detach();
+  //myservo2.attach(8);
 
-   byte status = mpu.begin();
-    Serial.print(F("MPU6050 status: "));
+  //myservo2.write(0);
+  Wire.begin();
+  Serial.begin(115200);
+  // bluetooth.begin(9600);
+  while (!Serial){}
+    delay(10); // will pause Zero, Leonardo, etc until serial console opens
+    Serial.println("Hi");
+    byte status = mpu.begin();
+    Serial.print("MPU6050 status: ");
     Serial.println(status);
     while(status!=0){ } // stop everything if could not connect to MPU6050
     
     Serial.println(F("Calculating offsets, do not move MPU6050"));
-    mpu.calcOffsets();
-    delay(1000);
-    // mpu.upsideDownMounting = true; // uncomment this line if the MPU6050 is mounted upside-down
+    // mpu.calcOffsets();
+    // Serial.print("Gx:"); Serial.print(mpu.getGyroXoffset());
+    // Serial.print("\tGy:"); Serial.print(mpu.getGyroYoffset());
+    // Serial.print("\tGz:"); Serial.print(mpu.getGyroZoffset());
+    // Serial.print("\tAx:"); Serial.print(mpu.getAccXoffset());
+    // Serial.print("\tAy:"); Serial.print(mpu.getAccYoffset());
+    // Serial.print("\tAz:"); Serial.print(mpu.getAccZoffset());
+    // delay(5000);
+
+    // Gx:-2.83	Gy:3.19	Gz:1.33	Ax:0.02	Ay:-0.04	Az:0.04
+    // Gx:-2.97	Gy:3.02	Gz:0.22	Ax:0.02	Ay:-0.02	Az:0.04
+// Gx:-2.79	Gy:3.10	Gz:1.33	Ax:0.06	Ay:-0.03	Az:0.04
+    mpu.setGyroOffsets(-2.79, 3.10, 1.33);
+    mpu.setAccOffsets(0.06, -0.03, 0.04);
+    
+    // mpu.upsideDownMounting = true; // uncomment this line if the MPU6050 is omounted upside-down
     Serial.println("Done!\n");
 
   attachInterrupt(digitalPinToInterrupt(2), encoderHandlerR,  CHANGE);
@@ -60,78 +86,7 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(20), encoderHandlerL,  CHANGE);
   attachInterrupt(digitalPinToInterrupt(21), encoderHandlerL, CHANGE);
 
-  
 
-
-  // Serial.println("Adafruit MPU6050 test!");
-
-  // // Try to initialize!
-  // if (!mpu.begin()) {
-  //   Serial.println("Failed to find MPU6050 chip");
-  //   while (1) {
-  //     delay(10);
-  //   }
-  // }
-  // Serial.println("MPU6050 Found!");
-
-  // // mpu.setAccelerometerRange(MPU6050_RANGE_8_G);
-  // // Serial.print("Accelerometer range set to: ");
-  // // switch (mpu.getAccelerometerRange()) {
-  // //   case MPU6050_RANGE_2_G:
-  // //     Serial.println("+-2G");
-  // //     break;
-  // //   case MPU6050_RANGE_4_G:
-  // //     Serial.println("+-4G");
-  // //     break;
-  // //   case MPU6050_RANGE_8_G:
-  // //     Serial.println("+-8G");
-  // //     break;
-  // //   case MPU6050_RANGE_16_G:
-  // //     Serial.println("+-16G");
-  // //     break;
-  // // }
-  // // mpu.setGyroRange(MPU6050_RANGE_500_DEG);
-  // // Serial.print("Gyro range set to: ");
-  // // switch (mpu.getGyroRange()) {
-  // //   case MPU6050_RANGE_250_DEG:
-  // //     Serial.println("+- 250 deg/s");
-  // //     break;
-  // //   case MPU6050_RANGE_500_DEG:
-  // //     Serial.println("+- 500 deg/s");
-  // //     break;
-  // //   case MPU6050_RANGE_1000_DEG:
-  // //     Serial.println("+- 1000 deg/s");
-  // //     break;
-  // //   case MPU6050_RANGE_2000_DEG:
-  // //     Serial.println("+- 2000 deg/s");
-  // //     break;
-  // // }
-
-  // // mpu.setFilterBandwidth(MPU6050_BAND_21_HZ);
-  // // Serial.print("Filter bandwidth set to: ");
-  // // switch (mpu.getFilterBandwidth()) {
-  // //   case MPU6050_BAND_260_HZ:
-  // //     Serial.println("260 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_184_HZ:
-  // //     Serial.println("184 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_94_HZ:
-  // //     Serial.println("94 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_44_HZ:
-  // //     Serial.println("44 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_21_HZ:
-  // //     Serial.println("21 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_10_HZ:
-  // //     Serial.println("10 Hz");
-  // //     break;
-  // //   case MPU6050_BAND_5_HZ:
-  // //     Serial.println("5 Hz");
-  // //     break;
-  // // }
 
   Serial.println("");
   delay(100);
@@ -145,64 +100,59 @@ void setup() {
 }
 
 void loop() {
-  mpu.update();
 
-  // sensors_event_t a, g, temp;
-  // mpu.getEvent(&a, &g, &temp);
-
-  // // Apply offsets to accelerometer and gyroscope readings
-  // int accelX = a.acceleration.x - accelXOffset;
-  // int accelY = a.acceleration.y - accelYOffset;
-  // int accelZ = a.acceleration.z - accelZOffset;
-  // int gyroX = g.gyro.x - gyroXOffset;
-  // int gyroY = g.gyro.y - gyroYOffset;
-  // int gyroZ = g.gyro.z - gyroZOffset;
-
-  // double angle = atan2(accelY, accelZ) * 180 / PI;
-  // double gyroAngle = angle + (gyroX / 131.0) * 0.98;
-
+  mpu.update();  
   double gyroAngle = mpu.getAngleX();
 
   error = setpoint - gyroAngle;
   P = Kp * error;
   I += Ki * error;
-  D = Kd * (error - lastError);
-  output = P + I + D;
+  D = mpu.getGyroX();//Kd * (error - lastError);
+  output = constrain(P + I + D, -255, 255);
   lastError = error;
 
-  // Check if the error is within the tolerance range
-  if (fabs(error) < errorTolerance) {
-    output = 0.0;  // Set the output to zero
-    I = 0.0;      // Reset the integral term
-  }
+  //Check if the error is within the tolerance range
+  // if (fabs(error) < errorTolerance) {
+  //   output = 0.0;  // Set the output to zero
+  //   //I = 0.0;      // Reset the integral term
+  // }
 
-  if (output > 255.00) {
-    output = 255.00;
-  } else if (output < -255.00) {
-    output = -255.00;
-  }
+  // if (output > 255.00) {
+  //   output = 254.00;
+  // } else if (output < -255.00) {
+  //   output = -254.00;
+  // }
   int motorSpeed = abs(output);  // Map the absolute output to the motor speed range
   
-  if (output <= 0.00) {
-    motorDirection = -1;
-  } else {
-    motorDirection = 1;
-  }
-
-  if (motorDirection == 1) {
-    analogWrite(motor1Pin1, motorSpeed);
-    analogWrite(motor1Pin2, 0);
-    analogWrite(motor2Pin1, motorSpeed);
-    analogWrite(motor2Pin2, 0);
-  } else if (motorDirection == -1) {
+  if (output < 0.00) {
     analogWrite(motor1Pin1, 0);
     analogWrite(motor1Pin2, motorSpeed);
     analogWrite(motor2Pin1, 0);
     analogWrite(motor2Pin2, motorSpeed);
   }
+  else if(output == 0){
+        analogWrite(motor1Pin1, 0);
+      analogWrite(motor1Pin2, 0);
+      analogWrite(motor2Pin1, 0);
+      analogWrite(motor2Pin2, 0);
+  } 
+  else {
+    analogWrite(motor1Pin1, motorSpeed);
+    analogWrite(motor1Pin2, 0);
+    analogWrite(motor2Pin1, motorSpeed);
+    analogWrite(motor2Pin2, 0);
+  }
 
-  Serial.print("Angle:");
-  Serial.println(gyroAngle);
+  // if (motorDirection == 1) {
+
+  // } else if (motorDirection == -1) {
+
+  // }
+
+  // Serial.print("Angle:");
+  // Serial.println(gyroAngle);
+  // Serial.print("Out:"); Serial.println(output);
+
   // delay(500);
   // Serial.print(","); 
   // Serial.print("Output:");
