@@ -1,18 +1,16 @@
-
-
 #include <Wire.h>
 // #include <Adafruit_MPU6050.h>
 #include <MPU6050_light.h>
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
-#include "encoder.h"
+#include <SPI.h>
+#include <SD.h>
 #include <Servo.h>
-
 
 MPU6050 mpu(Wire);
 Servo myservo1;
 Servo myservo2;
-
+File myFile;
 
 int motor1Pin1 = 6;
 int motor1Pin2 = 7;
@@ -21,7 +19,7 @@ int motor2Pin2 = 4;
 int motorDirection = 1;
 double setpoint = 0;
 double Kp = 35;//10.532;
-double Ki = 0.2;//18.338;
+double Ki = 0.1;//18.338;
 double Kd = -0.4;//1.00.577;
 
 double error, lastError = 0;
@@ -40,7 +38,7 @@ int gyroZOffset = 0;
 double errorTolerance = 0.2;
 
 //bluetooth module code
-#define BT_
+
 // SoftwareSerial bluetooth (10,9);
 
 void setup() {
@@ -81,12 +79,6 @@ void setup() {
     // mpu.upsideDownMounting = true; // uncomment this line if the MPU6050 is omounted upside-down
     Serial.println("Done!\n");
 
-  attachInterrupt(digitalPinToInterrupt(2), encoderHandlerR,  CHANGE);
-  attachInterrupt(digitalPinToInterrupt(3), encoderHandlerR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(20), encoderHandlerL,  CHANGE);
-  attachInterrupt(digitalPinToInterrupt(21), encoderHandlerL, CHANGE);
-
-
 
   Serial.println("");
   delay(100);
@@ -97,9 +89,41 @@ void setup() {
   pinMode(motor1Pin2, OUTPUT);
   pinMode(motor2Pin1, OUTPUT);
   pinMode(motor2Pin2, OUTPUT);
+
+  Serial.print("Initializing SD card...");
+
+  if (!SD.begin(53)) {
+    Serial.println("initialization failed!");
+    while (1);
+  }
+  Serial.println("initialization done.");
+  SD.remove("test.txt");
+
+  // open the file. note that only one file can be open at a time,
+  // so you have to close this one before opening another.
+  myFile = SD.open("test.txt", FILE_WRITE);
+
+  // if the file opened okay, write to it:
+  if (myFile) {
+    Serial.print("Writing to test.txt...");
+    myFile.print("P:");
+    myFile.print(Kp);
+    myFile.print(",I:");
+    myFile.print(Ki);
+    myFile.print(",D:");
+    myFile.print(Kd);
+    myFile.println("TIME,gyroAngle");
+    // close the file:
+    myFile.close();
+    Serial.println("done.");
+  } else {
+    // if the file didn't open, print an error:
+    Serial.println("error opening test.txt");
+  }
 }
 
 void loop() {
+  
 
   mpu.update();  
   double gyroAngle = mpu.getAngleX();
@@ -110,7 +134,7 @@ void loop() {
   D = mpu.getGyroX();//Kd * (error - lastError);
   output = constrain(P + I + D, -255, 255);
   lastError = error;
-
+  
   //Check if the error is within the tolerance range
   // if (fabs(error) < errorTolerance) {
   //   output = 0.0;  // Set the output to zero
@@ -123,7 +147,7 @@ void loop() {
   //   output = -254.00;
   // }
   int motorSpeed = abs(output);  // Map the absolute output to the motor speed range
-  
+  // Serial.println(motorSpeed);
   if (output < 0.00) {
     analogWrite(motor1Pin1, 0);
     analogWrite(motor1Pin2, motorSpeed);
@@ -131,7 +155,7 @@ void loop() {
     analogWrite(motor2Pin2, motorSpeed);
   }
   else if(output == 0){
-        analogWrite(motor1Pin1, 0);
+      analogWrite(motor1Pin1, 0);
       analogWrite(motor1Pin2, 0);
       analogWrite(motor2Pin1, 0);
       analogWrite(motor2Pin2, 0);
@@ -143,39 +167,20 @@ void loop() {
     analogWrite(motor2Pin2, 0);
   }
 
-  // if (motorDirection == 1) {
+  // Read gyro data
 
-  // } else if (motorDirection == -1) {
+  //  Get current time
+    unsigned long currentTime = millis();
 
-  // }
+    // Write data to SD card
+    myFile = SD.open("test.txt", FILE_WRITE);
+    if (myFile) {
+      myFile.print(currentTime);
+      myFile.print(",");
+      myFile.println(gyroAngle);
+      myFile.close();
+    } else {
+      Serial.println("Error");
+    }
 
-  // Serial.print("Angle:");
-  // Serial.println(gyroAngle);
-  // Serial.print("Out:"); Serial.println(output);
-
-  // delay(500);
-  // Serial.print(","); 
-  // Serial.print("Output:");
-  // Serial.print(output);
-  // Serial.print(","); 
-  // Serial.print("Motor Speed:");
-  // Serial.print(motorSpeed);
-  // Serial.print(","); 
-  // Serial.print("Motor Direction:");
-  // Serial.println(motorDirection);
-  // delay(20);  // Adjust delay as needed
-
-
-  //the code to send the data via bluetooth module
-  // if (bluetooth.available())
-  // {
-  //   int cmd =bluetooth.read();
-  //   float input = (analogRead(A0)) / x;
-  //   //Serial.println(input)
-  // }
-  // if (cmd == 1)
-  // {
-  //   if(input>5){bluetooth.write(closed);}
-  //   else{bluetooth.write(opened);}
-  // }
 }

@@ -5,7 +5,7 @@
 #include <MPU6050_light.h>
 #include <Adafruit_Sensor.h>
 #include <SoftwareSerial.h>
-#include "encoder.h"
+// #include "encoder.h"
 #include <Servo.h>
 
 
@@ -40,8 +40,8 @@ int gyroZOffset = 0;
 double errorTolerance = 0.2;
 
 //bluetooth module code
-#define BT_
-// SoftwareSerial bluetooth (10,9);
+
+SoftwareSerial bluetooth (10,9);
 
 void setup() {
   myservo1.attach(11);
@@ -81,15 +81,8 @@ void setup() {
     // mpu.upsideDownMounting = true; // uncomment this line if the MPU6050 is omounted upside-down
     Serial.println("Done!\n");
 
-  attachInterrupt(digitalPinToInterrupt(2), encoderHandlerR,  CHANGE);
-  attachInterrupt(digitalPinToInterrupt(3), encoderHandlerR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(20), encoderHandlerL,  CHANGE);
-  attachInterrupt(digitalPinToInterrupt(21), encoderHandlerL, CHANGE);
-
-
-
-  Serial.println("");
-  delay(100);
+    bluetooth.begin(9600);
+  delay(2000);
 
   // Calibrate MPU6050 offsets
 
@@ -142,6 +135,8 @@ void loop() {
     analogWrite(motor2Pin1, motorSpeed);
     analogWrite(motor2Pin2, 0);
   }
+
+  bluetooth.println(gyroAngle);
 
   // if (motorDirection == 1) {
 
